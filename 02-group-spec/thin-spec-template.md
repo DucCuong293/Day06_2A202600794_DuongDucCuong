@@ -25,6 +25,9 @@
 | User muốn ăn kiêng nhưng món ăn không hề có thông tin calo hay dinh dưỡng. | Self-use test #4 | Thiếu thông tin hỗ trợ user có lối sống lành mạnh hoặc đang trong chế độ ăn kiêng. | Tích hợp cơ sở dữ liệu dinh dưỡng (Nutritionix API) để ước tính calo cho món ăn được gợi ý. |
 | Khi buồn/stress muốn tìm comfort food ngọt hoặc cay nhưng app chỉ gợi ý quán trả tiền quảng cáo. | Self-use test #5 & #6 | App bỏ qua yếu tố tâm trạng - một động lực quan trọng của hành vi ăn uống. Gợi ý thiên vị quảng cáo làm giảm độ tin cậy. | Chatbot cho phép user chọn mood nhanh hoặc chia sẻ tâm trạng để gợi ý comfort food tương ứng, bỏ qua quán rác quảng cáo. |
 | Đêm muộn (23h) app vẫn gợi ý quán đã đóng cửa từ 22h, đặt đơn bị hủy. | Self-use test #7 | Data giờ hoạt động của các quán ăn không được đồng bộ real-time với thuật toán gợi ý. | Sync real-time giờ mở cửa thông qua Google Places API trước khi đưa ra gợi ý cho user. |
+| Tìm món dưới 50k, gợi ý cơm 45k ngon nhưng cách 5km phát sinh 25k ship → tổng đơn 70k vượt budget. | Self-use test #8 | Bỏ qua khoảng cách và phí ship khiến đề xuất vượt ngân sách thực tế của người dùng. | Tích hợp khoảng cách quán để ước tính phí ship thực tế và cộng vào budget tổng trước khi gợi ý. |
+| Trải nghiệm đứt gãy khi phải copy và gõ tay tên quán từ chatbot sang ShopeeFood để đặt. | Self-use test #9 | Thiếu sự kết nối và liền mạch giữa gợi ý của chatbot và hành động đặt hàng thực tế. | Bổ sung nút Copy nhanh tên quán và deep-link dẫn đến trang tìm kiếm của ứng dụng giao đồ ăn. |
+| Quán báo mở trên Google Maps nhưng thực tế trên ShopeeFood đang "Tạm ngưng nhận đơn" hoặc hết món. | Self-use test #10 | Trạng thái hoạt động và lượng tồn kho thực tế giữa các app giao đồ ăn bị lệch pha. | Gợi ý 1 món đi kèm danh sách 2-3 quán backup gần đó thay vì chỉ gợi ý duy nhất 1 quán để đề phòng. |
 
 ---
 
@@ -32,15 +35,15 @@
 
 ```text
 Người dùng trẻ (sinh viên, dân văn phòng) hay phân vân "hôm nay ăn gì?" trên ShopeeFood
-đang gặp khó khăn trong việc tìm món ăn phù hợp với ngữ cảnh thực tế của bản thân,
+đang gặp khó khăn trong việc tìm món ăn phù hợp với ngữ cảnh thực tế và tối ưu chi phí,
 vì hệ thống gợi ý của ShopeeFood chỉ tập trung vào các quán quảng cáo/phổ biến
-mà hoàn toàn bỏ qua các yếu tố ngữ cảnh như thời tiết, thời điểm trong ngày, tâm trạng, và thông tin dinh dưỡng:
-  - Gợi ý lẩu buffet vào buổi sáng, nước đá lạnh vào ngày mưa bão, hoặc quán đã đóng cửa lúc đêm muộn.
-  - Tìm kiếm không hiểu ngôn ngữ tự nhiên chứa nhiều tiêu chí phức tạp ("healthy dưới 50k gần đây").
-  - Thiếu hoàn toàn thông tin calo cho người ăn kiêng.
-Dẫn tới việc user mất 10-15 phút lướt app vô định, đặt nhầm quán đã đóng, hoặc nhận gợi ý không hợp nhu cầu,
-khiến họ cảm thấy mệt mỏi (choice overload) và dần mất niềm tin vào các đề xuất của app.
-Bằng chứng: 7 phát hiện qua tự trải nghiệm thực tế (self-use) của nhóm và các đánh giá công khai từ cộng đồng.
+mà hoàn toàn bỏ qua các yếu tố ngữ cảnh (thời tiết, thời điểm, tâm trạng, thông tin dinh dưỡng, phí ship phát sinh):
+  - Gợi ý sai thời điểm (lẩu buổi sáng), sai thời tiết (kem lạnh ngày mưa bão), hoặc quán đã đóng cửa.
+  - Gợi ý món trong budget nhưng quán ở quá xa khiến phí ship thực tế tăng cao làm tổng đơn vượt ngân sách.
+  - Đứt gãy trải nghiệm khi user phải tự ghi nhớ và gõ lại tên quán từ chatbot sang ứng dụng đặt hàng.
+  - Rủi ro quán gợi ý ngưng nhận đơn đột xuất trên app giao hàng.
+Dẫn tới việc user mất 10-15 phút lướt app vô định, đặt đơn bị hủy hoặc vượt quá số tiền muốn chi, gây ức chế.
+Bằng chứng: 10 phát hiện qua tự trải nghiệm thực tế (self-use) và phản hồi từ cộng đồng người dùng.
 ```
 
 ---
@@ -54,11 +57,13 @@ prototype sẽ là một AI Food Agent gợi ý món ăn thông minh theo ngữ 
   - Cho phép user trò chuyện tự nhiên hoặc click nhanh để chọn tâm trạng (mood: stress, vui vẻ, mệt mỏi)
     và yêu cầu cụ thể (budget dưới 50k, healthy/comfort food).
   - Truy vấn Google Places API để tìm các quán ăn thực tế gần vị trí của user đang mở cửa và có rating cao.
-  - Tích hợp Nutritionix API để bổ sung thông tin dinh dưỡng, lượng calo ước tính cho món ăn gợi ý.
-  - Output hiển thị 2-3 option được tuyển chọn chi tiết kèm lý do gợi ý ("Trời đang mưa 19°C và bạn đang stress,
-    món súp cua nóng hổi này [320 kcal] tại quán A cách bạn 500m là lựa chọn hoàn hảo!").
-  - Xử lý failure mode: AI nhận dạng sai mood hoặc gợi ý quán có đánh giá ảo bằng cách luôn có nút "Đổi món khác"
-    và nút phản hồi nhanh để AI học preference tức thì trong phiên chat.
+  - Tự động ước tính phí ship dựa trên khoảng cách địa lý (công thức: 15k cho 2km đầu + 5k/km tiếp theo)
+    để đảm bảo tổng tiền (món + ship) nằm trong budget đã đặt ra của user.
+  - Gợi ý 1 món ăn đi kèm danh sách 2-3 quán backup gần nhất cùng bán món đó (đề phòng quán chính ngưng nhận đơn).
+  - Bổ sung nút "Copy tên quán nhanh" ngay trên giao diện chat giúp user dễ dàng dán vào ShopeeFood để đặt đơn.
+  - Tích hợp Nutritionix API để bổ sung lượng calo ước tính cho món ăn gợi ý.
+  - Output hiển thị 2-3 option tuyển chọn chi tiết kèm lý do gợi ý thuyết phục.
+  - Xử lý failure mode: AI nhận dạng sai mood hoặc quán đóng cửa đột xuất bằng các nút bấm override/đổi món nhanh.
 ```
 
 ---
@@ -81,9 +86,9 @@ Chọn một:
 
 | Path | Prototype phải thể hiện gì? |
 |---|---|
-| **Happy** | Hệ thống tự detect trời mưa lạnh 20°C buổi trưa. User chat: *"Buồn ngủ quá, muốn ăn gì đó healthy ấm bụng dưới 60k"*. AI hiểu context, tìm qua API và gợi ý: Phở gà gà ta xé (390 kcal, giá 45k tại Quán Phở Việt cách 450m, mở cửa) + lý do: *"Húp nước dùng ấm nóng giải cảm, nhiều protein giúp tỉnh táo mà không béo"*. User bấm chọn. |
+| **Happy** | Hệ thống tự detect trời mưa lạnh 20°C buổi trưa. User chat: *"Muốn ăn gì đó healthy ấm bụng dưới 60k"*. AI hiểu context, tìm qua API, ước lượng quán cách 1.2km có phí ship 15k, gợi ý: Phở gà ta xé (390 kcal, giá 40k + ship 15k = 55k, vừa khít budget) tại Quán Phở Việt + lý do: *"Húp nước dùng ấm nóng giải cảm, nhiều protein giúp tỉnh táo mà không béo"*. Kèm nút copy tên quán nhanh. User bấm copy. |
 | **Low-confidence** | User nhập câu lệnh mơ hồ hoặc không rõ ràng: *"Ăn gì cũng được"*. AI không có đủ dữ liệu tâm trạng/budget → AI tự detect thời tiết + thời gian nền, đồng thời chủ động gợi ý nhanh bằng các nút bấm: *"Trưa hè nóng nực 35°C đấy! Bạn muốn một bữa 'Healthy lành mạnh' hay một bữa 'Nuông chiều bản thân' (comfort food) nào?"* để thu hẹp scope. |
-| **Failure** | AI đoán sai mood/nhu cầu thực tế của user (Ví dụ: User đang buồn chán và thực tế muốn ăn đồ ngọt nhiều calo để giải sầu, nhưng AI vẫn gợi ý món cháo dinh dưỡng nhạt nhẽo vì thấy trời mưa lạnh). Hoặc gợi ý quán có chất lượng thực tế quá tệ do chỉ lọc theo rating ảo trên Google Maps. |
+| **Failure** | AI đoán sai mood/nhu cầu thực tế của user (Ví dụ: User đang buồn chán và thực tế muốn ăn đồ ngọt nhiều calo để giải sầu, nhưng AI vẫn gợi ý món cháo dinh dưỡng nhạt nhẽo vì thấy trời mưa lạnh). Hoặc gợi ý quán có phí ship thực tế bị tăng đột biến vượt xa budget ước tính ban đầu. |
 | **Correction** | Khi gặp Failure Path (user phản đối gợi ý): User bấm nút *"Đổi món khác (muốn ăn ngọt/cay)"* hoặc chat *"Không muốn ăn healthy đâu"*. AI lập tức phản hồi: *"Xin lỗi bạn nhé, mình đổi vị ngay đây!"*, điều chỉnh bộ lọc sang comfort food, loại bỏ quán/món vừa gợi ý, và đưa ra 2 option mới (bánh ngọt/trà sữa nóng) phù hợp hơn. |
 
 ---
@@ -91,18 +96,21 @@ Chọn một:
 ## 7. Failure mode nguy hiểm nhất
 
 ```text
-Nếu AI gợi ý sai lệch hoàn toàn so với tâm trạng hoặc nhu cầu dinh dưỡng thực tế của user
-(ví dụ: user đang stress cực độ cần comfort food béo/ngọt để xả stress, nhưng AI lại ép ăn salad ức gà khô khan
-vì trước đó user từng đặt chế độ ăn healthy), user sẽ thấy cực kỳ ức chế và chán nản, dẫn đến việc tắt chatbot ngay lập tức.
-
-Prototype sẽ xử lý bằng:
-  - Luôn đi kèm nút "Nuông chiều bản thân" (Comfort Mode) và "Giữ dáng" (Healthy Mode) nổi bật trên giao diện chat
-    để user dễ dàng thay đổi chế độ chỉ bằng 1 click.
-  - Khi user nói "Không thích món này/Muốn đổi món", AI sẽ lập tức bỏ qua gợi ý cũ và hiển thị các tag gợi ý thay thế
-    như: "Cay nồng", "Ngọt ngào", "Nhanh gọn", "Thanh đạm" để user chọn hướng sửa đổi nhanh chóng.
+Failure Mode 1: AI gợi ý sai lệch hoàn toàn so với tâm trạng hoặc nhu cầu dinh dưỡng thực tế của user.
+Hậu quả: User thấy ức chế và chán nản, tắt chatbot ngay lập tức.
+Cách xử lý:
+  - Luôn đi kèm nút "Nuông chiều bản thân" (Comfort Mode) và "Giữ dáng" (Healthy Mode) nổi bật trên giao diện chat.
+  - Cho user chọn các tag gợi ý nhanh: "Cay nồng", "Ngọt ngào", "Nhanh gọn", "Thanh đạm" để override nhanh.
   - AI lưu preference tạm thời trong session chat để không lặp lại gợi ý thuộc nhóm món ăn bị từ chối.
 
-Owner kiểm thử path này là Bùi Hoàng Sơn (Tester).
+Failure Mode 2: Phí ship thực tế quá cao làm tổng chi phí vượt budget hoặc quán chính ngưng nhận đơn đột xuất trên ShopeeFood.
+Hậu quả: User click vào đặt hàng nhưng phát hiện quá đắt hoặc không thể đặt được món, gây mất thời gian và giảm lòng tin vào AI.
+Cách xử lý:
+  - Hệ thống tự động tính khoảng cách địa lý và ước tính phí ship (15k cho 2km đầu, +5k mỗi km tiếp theo) để warning trước.
+  - Phổ quát hóa thuật toán: Luôn đính kèm ít nhất 1-2 quán backup gần đó bán cùng món ăn để user chuyển hướng khi quán chính đóng cửa đột xuất.
+  - Cung cấp nút copy nhanh tên quán giúp việc dán sang ShopeeFood kiểm tra trạng thái thực tế chỉ mất 2 giây.
+
+Owner kiểm thử các path này là Bùi Hoàng Sơn (Tester).
 ```
 
 ---

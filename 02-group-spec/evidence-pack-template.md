@@ -27,6 +27,9 @@ Cả nhóm tự dùng ShopeeFood và ghi lại điểm gãy.
 | 5 | Gợi ý chủ yếu là quán đang chạy quảng cáo — không rõ đây là gợi ý tốt thật hay paid promotion. | **Low-confidence** — Ranh giới gợi ý vs quảng cáo mờ. | User mất niềm tin vào "Gợi ý cho bạn". Giống pain Moni (tư vấn vs quảng bá). |
 | 6 | Khi buồn/stress muốn ăn comfort food (mì cay, trà sữa, kem) nhưng phải tự search. App không hiểu mood. | **Failure** — App không hỗ trợ context cảm xúc. | Đây là nhu cầu thật: "tôi buồn, gợi ý gì ăn cho vui?" — app delivery chưa ai giải quyết. |
 | 7 | Đêm khuya (23h) app vẫn gợi ý quán đã đóng cửa → đặt không được → frustrating. | **Failure** — Gợi ý quán đã đóng cửa. | App không sync real-time giờ hoạt động của quán vào danh sách gợi ý. |
+| 8 | Tìm món ăn dưới 50k, AI gợi ý món 45k ngon nhưng quán cách 5km → phí ship thực tế 25k (tổng 70k) vượt budget nghiêm trọng. | **Failure** — Gợi ý vượt budget thực tế do bỏ qua khoảng cách và phí ship. | Gợi ý budget phải bao gồm cả ước tính phí ship dựa trên khoảng cách. |
+| 9 | Sau khi AI gợi ý, phải tự gõ thủ công lại tên quán trên ShopeeFood → trải nghiệm đứt gãy, dễ gõ sai. | **Failure** — Luồng trải nghiệm từ chatbot sang đặt hàng bị gãy. | Chatbot cần hỗ trợ nút copy tên quán nhanh hoặc deep-link search. |
+| 10 | Gợi ý quán cơm mở cửa trên Google Maps nhưng khi mở ShopeeFood thực tế quán ghi "Tạm ngưng nhận đơn". | **Failure** — Trạng thái đóng/mở cửa giữa các nền tảng bị lệch nhau. | Cần gợi ý món ăn kèm danh sách 2-3 quán backup gần đó thay vì chỉ gợi ý 1 quán duy nhất. |
 
 ---
 
@@ -60,22 +63,28 @@ Evidence nổi bật nhất:
 3. Không có thông tin dinh dưỡng trên bất kỳ món nào.
 4. Gợi ý thiên vị quảng cáo thay vì cá nhân hoá thật.
 5. User buồn/stress muốn comfort food nhưng phải tự tìm.
+6. Khoảng cách xa làm phát sinh phí ship cao khiến tổng đơn vượt budget của user.
+7. Đứt gãy trải nghiệm khi phải copy/gõ thủ công tên quán từ chatbot sang ShopeeFood.
+8. Quán hiển thị mở cửa nhưng thực tế trên ShopeeFood ngưng nhận đơn hoặc hết hàng.
 
 Insight:
 User trẻ Việt Nam dùng food delivery không chỉ cần một danh sách quán.
 Họ thật ra cần một trợ lý ăn uống hiểu ngữ cảnh:
-  - Bây giờ là sáng hay tối?
-  - Trời mưa hay nắng?
+  - Bây giờ là sáng hay tối? Trời mưa hay nắng?
   - User đang vui, buồn, hay stress?
-  - Budget bao nhiêu? Muốn healthy hay comfort?
-vì evidence cho thấy 6/7 pain đều liên quan đến
+  - Budget thực tế là bao nhiêu (gồm cả phí ship dựa trên khoảng cách)?
+  - Muốn healthy hay comfort? Có phương án quán backup hay không?
+vì evidence cho thấy phần lớn pain đều liên quan đến
 "app gợi ý ĐÚNG MÓN nhưng SAI CONTEXT" — không sai về data,
 sai về hiểu ngữ cảnh con người.
 
 Opportunity:
 AI có thể giúp bằng cách kết hợp context thời tiết (Weather API)
 + thời gian + cảm xúc user (chatbot hỏi mood)
-+ budget/health preference + vị trí (Google Maps Places)
++ budget thực tế (bao gồm ước tính phí ship từ khoảng cách quán)
++ vị trí (Google Maps Places) để lọc quán gần nhất đang mở cửa
++ cung cấp 2-3 quán backup để tránh quán chính ngưng nhận đơn
++ cung cấp nút copy nhanh tên quán
 + thông tin dinh dưỡng (Nutritionix)
 để gợi ý món phù hợp ngữ cảnh thay vì gợi ý chung chung.
 ```
@@ -86,10 +95,10 @@ AI có thể giúp bằng cách kết hợp context thời tiết (Weather API)
 
 - [x] Đổi user chính. → User trẻ (sinh viên, dân văn phòng) dùng food delivery hàng ngày, hay phân vân "ăn gì".
 - [x] Đổi pain statement. → Pain không phải "app lỗi" mà là "app gợi ý đúng món nhưng sai context".
-- [x] Đổi build slice. → AI agent gợi ý món theo ngữ cảnh (thời tiết + mood + thời gian + budget + health).
+- [x] Đổi build slice. → AI agent gợi ý món theo ngữ cảnh (thời tiết + mood + thời gian + budget kèm ship + backup quán + copy shortcut).
 - [x] Đổi Auto/Aug decision. → Augmentation: AI gợi ý 2-3 option, user chọn.
 - [x] Đổi 4 paths. → Thêm low-confidence path khi AI không chắc mood user.
-- [x] Đổi failure mode. → AI gợi ý sai mood (user buồn nhưng gợi ý healthy salad thay vì comfort food).
+- [x] Đổi failure mode. → AI gợi ý sai mood (user buồn nhưng gợi ý healthy salad thay vì comfort food) hoặc phí ship vượt budget.
 - [x] Đổi owner/test plan. → Chia 5 người: research, SPEC, prototype, test, demo.
 
 Ghi rõ 1-2 thay đổi quan trọng:
@@ -97,8 +106,8 @@ Ghi rõ 1-2 thay đổi quan trọng:
 ```text
 Trước evidence, nhóm định build "chatbot tìm quán ăn gần đây".
 Sau evidence, nhóm nhận ra pain thật không phải "tìm quán"
-  mà là "chọn món phù hợp LÚC NÀY, VỚI TÂM TRẠNG NÀY, THỜI TIẾT NÀY".
+  mà là "chọn món phù hợp LÚC NÀY, VỚI TÂM TRẠNG NÀY, THỜI TIẾT NÀY, VÀ CHI PHÍ THỰC TẾ NÀY".
   Đổi build slice thành context-aware food recommendation agent
-  kết hợp Weather API + mood input + Google Maps + Nutritionix.
-Lý do: 6/7 pain points đều liên quan đến sai context, không phải thiếu data.
+  kết hợp Weather API + mood input + Google Maps + Nutritionix + công thức tính phí ship + quán backup + nút copy nhanh.
+Lý do: Các pain points đều liên quan đến sai context và chi phí thực tế phát sinh (phí ship), không chỉ là thiếu data.
 ```
